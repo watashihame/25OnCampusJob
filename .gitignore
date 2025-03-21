@@ -1,0 +1,4 @@
+notebook/data/*
+overleaf-test/mongo_data/
+overleaf-test/overleaf_data/
+overleaf-test/redis_data/

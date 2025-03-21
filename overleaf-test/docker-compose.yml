@@ -1,0 +1,52 @@
+services:
+    sharelatex:
+        restart: always
+        image: sharelatex/sharelatex
+        container_name: sharelatex-test
+        depends_on:
+            mongo:
+                condition: service_healthy
+            redis:
+                condition: service_started
+        ports:
+            - 8808:80
+        links:
+            - mongo
+            - redis
+        volumes:
+            - ./overleaf_data:/var/lib/overleaf
+        environment:
+            OVERLEAF_APP_NAME: Overleaf Community Edition
+            OVERLEAF_MONGO_URL: mongodb://mongo:27017/sharelatex?replicaSet=rs0  # 添加副本集参数
+            OVERLEAF_REDIS_HOST: redis
+            REDIS_HOST: redis
+            ENABLED_LINKED_FILE_TYPES: 'url,project_file'
+            ENABLE_CONVERSIONS: 'true'
+            EMAIL_CONFIRMATION_DISABLED: 'true'
+            TEXMFVAR: /var/lib/overleaf/tmp/texmf-var
+
+
+    mongo:
+        restart: always
+        image: mongo:5.0
+        container_name: mongo-test
+        expose:
+            - 27017
+        volumes:
+            - ./mongo_data:/data/db
+        command: mongod --replSet rs0 --bind_ip_all  # 添加副本集配置
+        healthcheck:
+            test: |
+              echo 'rs.initiate().ok || rs.status().ok' | mongo localhost:27017/test --quiet  # 修改健康检查
+            interval: 10s
+            timeout: 10s
+            retries: 15
+
+    redis:
+        restart: always
+        image: redis:5
+        container_name: redis-test
+        expose:
+            - 6379
+        volumes:
+            - ./redis_data:/data
