@@ -1,0 +1,100 @@
+
+\section{概要}
+Dockerは、オープンソースのアプリケーションコンテナエンジンであり、Go言語で実装され、Apache 2.0ライセンスのもとで公開されています。Dockerを使用すると、開発者が作成したアプリケーションとその実行環境を簡単に移植できます。
+
+実験において、多くの場合、異なる論文で提案された手法を検証する必要がありますが、これらの手法は環境に大きく依存することがよくあります。最近では、多くの研究者が標準的な環境構築手順に加え、Dockerコンテナを提供するようになっています。
+
+直接PCやサーバー上で依存関係を構築すると、以下のような問題が発生します：
+\begin{itemize}
+    \item 既存のソフトウェア環境（例：ハードウェアドライバのバージョンやコンパイラのバージョン）に影響を与える。
+    \item 手動での環境構築には時間と労力がかかる（特に、一部のソフトウェアはソースコードからのコンパイルが必要）。
+\end{itemize}
+
+仮想マシン（VM）イメージを使用する場合、構築に時間がかかり、性能のオーバーヘッドが発生します。しかし、Dockerは次のような利点を提供します：
+\begin{itemize}
+    \item ホストマシン上に「仮想環境」を構築し、既存のソフトウェア環境に影響を与えない。
+    \item 依存関係を簡単に構築できるため、手間がかからず、アプリケーションの展開が容易。
+    \item 性能オーバーヘッドが非常に低く、ほぼ全ての計算リソースを使用可能。
+\end{itemize}
+
+このチュートリアルでは、Ubuntu 24.04 LTSを前提とします。読者は基本的な\texttt{Linux}コマンドに関する知識を持っていることが求められます。
+
+\section{Docker Engineのインストール}
+Dockerはバージョン17.03以降、コミュニティ版（CE：Community Edition）とエンタープライズ版（EE：Enterprise Edition）を提供しています。本チュートリアルでは、CE版を使用します。
+
+\subsection{公式スクリプトによるインストール}
+\begin{lstlisting}[language=bash]
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh ./get-docker.sh --dry-run
+\end{lstlisting}
+\textbf{注意点}：
+\begin{itemize}
+    \item \texttt{root} 権限が必要です。
+    \item スクリプトは自動的にシステムのバージョンを認識し、パッケージ管理を設定します。
+    \item インストール時のパラメータ設定は不可ですが、本チュートリアルでは特に問題になりません。
+    \item スクリプトはDockerの最新バージョンをインストールしますが、Dockerのアップグレードには使用できません。
+\end{itemize}
+
+\subsection{\texttt{apt}を使用したインストール}
+\begin{enumerate}
+    \item Dockerのリポジトリを設定
+\begin{lstlisting}[language=bash]
+# Add Docker's official GPG key:
+sudo apt-get update
+sudo apt-get install ca-certificates curl
+sudo install -m 0755 -d /etc/apt/keyrings
+sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg -o /etc/apt/keyrings/docker.asc
+sudo chmod a+r /etc/apt/keyrings/docker.asc
+
+# Add the repository to Apt sources:
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu \
+  (. /etc/os-release && echo \"(. /etc/os-release && echo \"{UBUNTU_CODENAME:-$VERSION_CODENAME}\") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+sudo apt-get update
+\end{lstlisting}
+
+    \item 最新バージョンのDockerをインストール
+\begin{lstlisting}[language=bash]
+sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+\end{lstlisting}
+\end{enumerate}
+
+アップデート時は、手順2を繰り返すだけでOKです。
+
+\subsection{インストール確認}
+\begin{lstlisting}[language=bash]
+sudo docker run hello-world
+\end{lstlisting}
+
+出力結果は以下のようになります：
+\begin{lstlisting}
+Hello from Docker!
+This message shows that your installation appears to be working correctly.
+\end{lstlisting}
+
+\subsection{ユーザーのDocker実行権限を設定}
+上記の手順でインストールされたDockerは、デフォルトでは\texttt{root}ユーザーとして実行されます。そのため、\texttt{sudo}を毎回使用する必要があります。
+
+Dockerをより便利に使用するために、現在のユーザーを\texttt{docker}グループに追加します。このグループはDockerのインストール時に自動作成されます。
+
+\begin{enumerate}
+    \item \texttt{docker}グループの確認と作成
+\begin{lstlisting}[language=bash]
+getent group docker
+\end{lstlisting}
+
+もしグループが存在しない場合、以下のコマンドで作成できます：
+\begin{lstlisting}[language=bash]
+sudo groupadd docker
+\end{lstlisting}
+
+    \item ユーザーを\texttt{docker}グループに追加
+\begin{lstlisting}[language=bash]
+sudo usermod -aG docker your_username
+newgrp docker
+\end{lstlisting}
+
+\end{enumerate}
+
+これにより、今後\texttt{sudo}を使わずにDockerコマンドを実行できるようになります。
